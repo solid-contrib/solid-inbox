@@ -28,6 +28,9 @@ Inbox = (function () {
 
     var webSockets = {};
 
+    var sortedRead = [];
+    var sortedUnead = [];
+
     // Initialize app
     var init = function() {
         config.parentElement = '.timeline';
@@ -54,6 +57,83 @@ Inbox = (function () {
 
     var showError = function(err) {
         console.log(err);
+    };
+
+    // check if a message exits in an list
+    var listExists = function(url, arr) {
+        for (var i=0; i<arr.length; i++) {
+            if (arr[i] && arr[i].url == url) {
+                return i;
+            }
+        }
+        return -1;
+    };
+
+    var addToList = function(elem, msg, showGrowl) {
+        console.log("Adding to ", elem, "for message", msg.url);
+        if (elem == 'read') {
+            var sortedMsgs = sortedRead;
+            var exists = listExists(msg.url, sortedRead);
+        } else {
+            var sortedMsgs = sortedUnead;
+            var exists = listExists(msg.url, sortedUnead);
+        }
+        var list = document.getElementById(elem).querySelector('ul');
+        document.getElementById(elem).classList.remove('hidden');
+        // convert msg to HTML
+        var article = msgToHTML(msg, true);
+
+        // sort array and add to dom
+        // TODO improve it later
+        if (exists < 0) {
+            console.log(msg.url, "doesn't exist, pushing to", elem);
+            sortedMsgs.push({date: msg.created, url: msg.url});
+
+            sortedMsgs.sort(function(a,b) {
+                var c = new Date(a.date);
+                var d = new Date(b.date);
+                return d-c;
+            });
+            for(var i=0; i<sortedMsgs.length; i++) {
+                var p = sortedMsgs[i];
+                if (p.url == msg.url) {
+                    if (i === sortedMsgs.length-1) {
+                        list.appendChild(article);
+                    } else {
+                        if (document.getElementById(sortedMsgs[i+1])) {
+                            list.insertBefore(article, document.getElementById(sortedMsgs[i+1].url));
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        if (!msgs[msg.url] && showGrowl) {
+            growl("New message", msg.title);
+        }
+        // add msg to local list
+        msgs[msg.url] = msg;
+    };
+
+    // Remove a message from a given list
+    var removeFromList = function(elem, msg) {
+        if (elem == 'read') {
+            var sortedMsgs = sortedRead;
+            var exists = listExists(msg.url, sortedRead);
+        } else {
+            var sortedMsgs = sortedUnead;
+            var exists = listExists(msg.url, sortedUnead);
+        }
+        if (exists >= 0) {
+            sortedMsgs.splice(exists, 1);
+        }
+        var item = document.getElementById(msg.url);
+        if (item) {
+            item.remove();
+            if (sortedMsgs.length === 0) {
+                document.getElementById(elem).classList.add('hidden');
+            }
+        }
     };
 
     // Load messages from an inbox container
@@ -87,6 +167,7 @@ Inbox = (function () {
                     } else {
                         document.querySelector('.init').classList.remove('hidden');
                     }
+                    return;
                 }
 
                 var toLoad = _messages.length;
@@ -96,18 +177,6 @@ Inbox = (function () {
                     }
                 }
 
-                // check if the object exists
-                var exists = function(url, arr) {
-                    for (var i=0; i<arr; i++) {
-                        if (arr[i].url == url) {
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-
-                var sortedRead = [];
-                var sortedUnead = [];
                 _messages.forEach(function(url){
                     loadMessage(url).then(
                         function(msg) {
@@ -116,47 +185,10 @@ Inbox = (function () {
                                 isDone();
                             } else {
                                 if (msg.read) {
-                                    var sortedMsgs = sortedRead;
-                                    var list = read;
+                                    addToList('read', msg);
                                 } else {
-                                    var sortedMsgs = sortedUnead;
-                                    var list = unread;
+                                    addToList('unread', msg, showGrowl);
                                 }
-                                list.classList.remove('hidden');
-                                // convert msg to HTML
-                                var article = msgToHTML(msg, true);
-
-                                // sort array and add to dom
-                                // TODO improve it later
-                                sortedMsgs.push({date: msg.created, url: msg.url});
-                                sortedMsgs.sort(function(a,b) {
-                                    var c = new Date(a.date);
-                                    var d = new Date(b.date);
-                                    return d-c;
-                                });
-                                for(var i=0; i<sortedMsgs.length; i++) {
-                                    var p = sortedMsgs[i];
-                                    if (p.url == msg.url) {
-                                        if (!msgs[url]) {
-                                            if (i === sortedMsgs.length-1) {
-                                                list.appendChild(article);
-                                            } else {
-                                                if (document.getElementById(sortedMsgs[i+1])) {
-                                                    list.insertBefore(article, document.getElementById(sortedMsgs[i+1].url));
-                                                }
-                                            }
-                                            if (showGrowl) {
-                                                growl("New message", msg.title);
-                                            }
-                                        } else {
-                                            updateMessage(msg);
-                                        }
-                                        break;
-                                    }
-                                }
-
-                                // add msg to local list
-                                msgs[msg.url] = msg;
                                 toLoad--;
                                 isDone();
                             }
@@ -172,15 +204,17 @@ Inbox = (function () {
                 });
 
                 // setup WebSocket listener since we are sure we have msgs in this container
-                Solid.web.head(url).then(function(meta) {
-                    if (meta.websocket.length > 0) {
-                        socketSubscribe(meta.websocket, url);
-                    }
-                }).catch(
-                    function(err) {
-                        showError(err);
-                    }
-                );
+                if (!webSockets[url]) {
+                    Solid.web.head(url).then(function(meta) {
+                        if (meta.websocket.length > 0) {
+                            socketSubscribe(meta.websocket, url);
+                        }
+                    }).catch(
+                        function(err) {
+                            showError(err);
+                        }
+                    );
+                }
             }
         )
         .catch(
@@ -497,7 +531,7 @@ Inbox = (function () {
         console.log(url, toDel, toIns);
         Solid.web.patch(url, toDel, toIns).then(function(meta) {
             msgs[url].read = false;
-            updateMessage(msgs[url]);
+            updateMessage(msgs[url], true);
         }).catch(function(err) {
             showError(err);
         });
@@ -506,8 +540,15 @@ Inbox = (function () {
     // Update a DOM message with new message data
     var updateMessage = function(msg) {
         msgs[msg.url] = msg;
-        var list = (msg.read)?document.getElementById('read'):document.getElementById('unread');
-        list.replaceChild(msgToHTML(msg), document.getElementById(msg.url));
+        if (msg.read) {
+            var fromList = 'unread';
+            var toList = 'read';
+        } else {
+            var fromList = 'read';
+            var toList = 'unread';
+        }
+        removeFromList(fromList, msg);
+        addToList(toList, msg);
     }
 
     // Transform a message (object) to HTML
@@ -561,7 +602,6 @@ Inbox = (function () {
         var mark = document.createElement('a');
         mark.classList.add("action-button");
         mark.classList.add("action-button-sm");
-        console.log("Read:",msg.read);
         if (msg.read) {
             mark.setAttribute('onclick', 'Inbox.markUnread(\''+msg.url+'\')');
             mark.setAttribute('title', 'Mark unread');
@@ -939,5 +979,7 @@ Inbox = (function () {
         markUnread: markUnread,
         login: login,
         logout: logout,
+        sortedRead: sortedRead,
+        sortedUnead: sortedUnead
     };
 }(this));

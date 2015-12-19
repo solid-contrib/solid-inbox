@@ -35,6 +35,7 @@ img {
   position: relative;
   left: -5px;
   text-align: center;
+  color: #555;
   text-transform: uppercase;
 }
 .timeline h2.break {

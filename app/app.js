@@ -21,8 +21,11 @@ Inbox = (function () {
     var SOLID = $rdf.Namespace("http://www.w3.org/ns/solid/terms#");
 
     var user = {};
+
     var msgs = {};
+
     var authors = {};
+
     var webSockets = {};
 
     // Initialize app
@@ -55,15 +58,9 @@ Inbox = (function () {
 
     // Load messages from an inbox container
     var loadInbox = function(url, showGrowl) {
-        // select element holding all the messages
-        var parentdiv = document.querySelector(config.parentElement);
-        var list = document.querySelector('ul');
-        if (list) {
-            list.remove();
-        }
-        list = document.createElement('ul');
-        list.id = 'list';
-        parentdiv.appendChild(list);
+        // select elements holding all the messages
+        var unread = document.getElementById('unread').querySelector('ul');
+        var read = document.getElementById('read').querySelector('ul');
 
         // find known resources
         Solid.web.get(url).then(
@@ -96,13 +93,21 @@ Inbox = (function () {
                 var isDone = function() {
                     if (toLoad <= 0) {
                         hideLoading();
-                        if (showGrowl) {
-                            growl("Updating...", "Finished loading your inbox");
-                        }
                     }
                 }
 
-                var sortedMsgs = [];
+                // check if the object exists
+                var exists = function(url, arr) {
+                    for (var i=0; i<arr; i++) {
+                        if (arr[i].url == url) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+                var sortedRead = [];
+                var sortedUnead = [];
                 _messages.forEach(function(url){
                     loadMessage(url).then(
                         function(msg) {
@@ -110,6 +115,14 @@ Inbox = (function () {
                                 toLoad--;
                                 isDone();
                             } else {
+                                if (msg.read) {
+                                    var sortedMsgs = sortedRead;
+                                    var list = read;
+                                } else {
+                                    var sortedMsgs = sortedUnead;
+                                    var list = unread;
+                                }
+                                list.classList.remove('hidden');
                                 // convert msg to HTML
                                 var article = msgToHTML(msg, true);
 
@@ -124,20 +137,26 @@ Inbox = (function () {
                                 for(var i=0; i<sortedMsgs.length; i++) {
                                     var p = sortedMsgs[i];
                                     if (p.url == msg.url) {
-                                        if (i === sortedMsgs.length-1) {
-                                            list.appendChild(article);
+                                        if (!msgs[url]) {
+                                            if (i === sortedMsgs.length-1) {
+                                                list.appendChild(article);
+                                            } else {
+                                                if (document.getElementById(sortedMsgs[i+1])) {
+                                                    list.insertBefore(article, document.getElementById(sortedMsgs[i+1].url));
+                                                }
+                                            }
+                                            if (showGrowl) {
+                                                growl("New message", msg.title);
+                                            }
                                         } else {
-                                            list.insertBefore(article, document.getElementById(sortedMsgs[i+1].url));
+                                            updateMessage(msg);
                                         }
                                         break;
                                     }
                                 }
 
-                                // fade long text in article
-                                if (config.fadeText) {
-                                    addTextFade(msg.url);
-                                }
-
+                                // add msg to local list
+                                msgs[msg.url] = msg;
                                 toLoad--;
                                 isDone();
                             }
@@ -244,8 +263,16 @@ Inbox = (function () {
                             msg.body = body.value;
                         }
 
-                        // add msg to local list
-                        msgs[msg.url] = msg;
+                        // add status (read/unread)
+                        msg.read = false;
+                        var read = g.any(subject, SIOC('viewed_by'));
+                        if (read && read.uri == user.webid) {
+                            msg.read = true;
+                        }
+
+                        // add statements
+                        msg.statements = g.statementsMatching(undefined, undefined, undefined, $rdf.sym(url));
+                        // return
                         resolve(msg);
                     } else {
                         resolve({});
@@ -285,11 +312,11 @@ Inbox = (function () {
                     var msgId = document.getElementById(url);
                     if (profile.name && msgId) {
                         msgId.querySelector('.msg-author').innerHTML = profile.name;
-                        msgId.querySelector('.msg-avatar').title = profile.name+"'s picture";
-                        msgId.querySelector('.msg-avatar').alt = profile.name+"'s picture";
+                        msgId.querySelector('.msg-picture').title = profile.name+"'s picture";
+                        msgId.querySelector('.msg-picture').alt = profile.name+"'s picture";
                     }
                     if (profile.picture && msgId) {
-                        msgId.querySelector('.msg-avatar').src = profile.picture;
+                        msgId.querySelector('.msg-picture').src = profile.picture;
                     }
                 }
             }
@@ -379,28 +406,29 @@ Inbox = (function () {
     };
 
     var confirmDelete = function(url) {
-        var postTitle = (posts[url].title)?'<br><p><strong>'+posts[url].title+'</strong></p>':'this post';
+        var msgTitle = (msgs[url].title)?'<br><p><strong>'+msgs[url].title+'</strong></p>':'this post';
         var div = document.createElement('div');
         div.id = 'delete';
         div.classList.add('dialog');
         var section = document.createElement('section');
-        section.innerHTML = "You are about to delete "+postTitle;
+        section.innerHTML = "<p>You are about to delete "+msgTitle+"</p>";
+        section.innerHTML += "<p>"+url+"</p>";
         div.appendChild(section);
 
         var footer = document.createElement('footer');
 
-        var del = document.createElement('button');
-        del.classList.add("button");
+        var del = document.createElement('a');
+        del.classList.add("action-button");
         del.classList.add('danger');
         del.classList.add('float-left');
-        del.setAttribute('onclick', 'Plume.deletePost(\''+url+'\')');
+        del.setAttribute('onclick', 'Inbox.deleteMessage(\''+url+'\')');
         del.innerHTML = 'Delete';
         footer.appendChild(del);
         // delete button
-        var cancel = document.createElement('button');
-        cancel.classList.add('button');
+        var cancel = document.createElement('a');
+        cancel.classList.add('action-button');
         cancel.classList.add('float-right');
-        cancel.setAttribute('onclick', 'Plume.cancelDelete()');
+        cancel.setAttribute('onclick', 'Inbox.cancelDelete()');
         cancel.innerHTML = 'Cancel';
         footer.appendChild(cancel);
         div.appendChild(footer);
@@ -413,12 +441,12 @@ Inbox = (function () {
         document.getElementById('delete').remove();
     };
 
-    var deleteMsg = function(url) {
+    var deleteMessage = function(url) {
         if (url) {
             Solid.web.del(url).then(
                 function(done) {
                     if (done) {
-                        delete posts[url];
+                        delete msgs[url];
                         document.getElementById(url).remove();
                         document.getElementById('delete').remove();
                         notify('success', 'Successfully deleted post');
@@ -435,16 +463,62 @@ Inbox = (function () {
         }
     };
 
+    // Mark a message as unread
+    var markRead = function(url) {
+        var toDel = [];
+        var toIns = [];
+        var st = msgs[url].statements;
+        for (var i=0; i<st.length; i++) {
+            if (st[i] && st[i].predicate.uri == SIOC('viewed_by')) {
+                toDel.push(st[i].toNT());
+                break;
+            }
+        }
+        toIns.push($rdf.sym(url).toString() + ' ' + SIOC('viewed_by').toString() + ' ' + $rdf.sym(user.webid).toString() + ' .');
+        Solid.web.patch(url, toDel, toIns).then(function(meta) {
+            msgs[url].read = true;
+            updateMessage(msgs[url]);
+        }).catch(function(err) {
+            showError(err);
+        });
+    };
+
+    // Mark a message as unread
+    var markUnread = function(url) {
+        var toDel = [];
+        var toIns = [];
+        var st = msgs[url].statements;
+        for (var i=0; i<st.length; i++) {
+            if (st[i] && st[i].predicate.uri == SIOC('viewed_by').uri) {
+                toDel.push(st[i].toNT());
+                break;
+            }
+        }
+        console.log(url, toDel, toIns);
+        Solid.web.patch(url, toDel, toIns).then(function(meta) {
+            msgs[url].read = false;
+            updateMessage(msgs[url]);
+        }).catch(function(err) {
+            showError(err);
+        });
+    };
+
+    // Update a DOM message with new message data
+    var updateMessage = function(msg) {
+        msgs[msg.url] = msg;
+        var list = (msg.read)?document.getElementById('read'):document.getElementById('unread');
+        list.replaceChild(msgToHTML(msg), document.getElementById(msg.url));
+    }
+
     // Transform a message (object) to HTML
     var msgToHTML = function(msg) {
         var author = authors[msg.author];
-        console.log(author);
         var element = document.createElement('li');
         element.id = msg.url;
 
         var span = document.createElement('span');
         span.classList.add('date');
-        span.innerHTML = formatDate(msg.date);
+        span.innerHTML = formatDate(msg.created);
         element.appendChild(span);
 
         // create header
@@ -474,14 +548,41 @@ Inbox = (function () {
         // append meta author to meta
         header.appendChild(metaAuthor);
 
-
         var h1 = document.createElement('h1');
-        h1.innerHTML = msg.title;
+        h1.innerHTML = '<a href="'+msg.url+'" class="msg-title" target="_blank" title="'+msg.title+'">'+msg.title+'</a>';
         element.appendChild(h1);
 
         var body = document.createElement('p');
         body.innerHTML = msg.body.linkify();
         element.appendChild(body);
+
+        var footer = document.createElement('footer');
+        // edit button
+        var mark = document.createElement('a');
+        mark.classList.add("action-button");
+        mark.classList.add("action-button-sm");
+        console.log("Read:",msg.read);
+        if (msg.read) {
+            mark.setAttribute('onclick', 'Inbox.markUnread(\''+msg.url+'\')');
+            mark.setAttribute('title', 'Mark unread');
+            mark.innerHTML = 'Mark unread';
+        } else {
+            mark.setAttribute('onclick', 'Inbox.markRead(\''+msg.url+'\')');
+            mark.setAttribute('title', 'Mark read');
+            mark.innerHTML = 'Mark read';
+        }
+        footer.appendChild(mark);
+        // delete button
+        var del = document.createElement('a');
+        del.classList.add('action-button');
+        del.classList.add('action-button-sm');
+        del.classList.add('danger-text');
+        del.setAttribute('onclick', 'Inbox.confirmDelete(\''+msg.url+'\')');
+        del.innerHTML = 'Delete';
+        footer.appendChild(del);
+
+        // append footer to post
+        element.appendChild(footer);
 
         return element;
     };
@@ -562,7 +663,6 @@ Inbox = (function () {
             var socket = new WebSocket(wss);
             socket.onopen = function(){
                 this.send('sub ' + uri);
-                console.log("Connected to WebSocket at", wss);
             }
             socket.onmessage = function(msg){
                 if (msg.data && msg.data.slice(0, 3) === 'pub') {
@@ -626,7 +726,7 @@ Inbox = (function () {
 
     // Send a browser notification
     var growl = function(type, body, timeout) {
-        var icon = 'favicon.png';
+        var icon = 'img/icon.png';
         if (!timeout) {
             var timeout = 2000;
         }
@@ -732,19 +832,6 @@ Inbox = (function () {
     // reset to initial view
     var resetAll = function() {
         hideLoading();
-        document.getElementById('menu-button').classList.remove('hidden');
-        document.querySelector('.init').classList.add('hidden');
-        document.querySelector('.editor').classList.add('hidden');
-        document.querySelector('.viewer').classList.add('hidden');
-        document.querySelector('.viewer').innerHTML = '';
-        document.querySelector('.posts').classList.remove('hidden');
-        if (posts && len(posts) === 0) {
-            if (user.authenticated) {
-                document.querySelector('.start').classList.remove('hidden');
-            } else {
-                document.querySelector('.init').classList.remove('hidden');
-            }
-        }
 
         window.history.pushState("", document.querySelector('title').value, window.location.pathname);
     };
@@ -835,6 +922,7 @@ Inbox = (function () {
     };
 
 
+
     init();
 
 
@@ -844,6 +932,11 @@ Inbox = (function () {
         loadInbox: loadInbox,
         loadMessage: loadMessage,
         toggleInfo: toggleInfo,
+        deleteMessage: deleteMessage,
+        confirmDelete: confirmDelete,
+        cancelDelete: cancelDelete,
+        markRead: markRead,
+        markUnread: markUnread,
         login: login,
         logout: logout,
     };

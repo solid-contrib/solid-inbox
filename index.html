@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-    <title>Inbox timeline</title>
+    <title>Solid Inbox</title>
     <link href='https://fonts.googleapis.com/css?family=Roboto:400,300' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="shortcut icon" type="img/png" href="favicon.png">
+    <link rel="manifest" href="manifest.json">
 </head>
 
 <body>
@@ -31,7 +33,14 @@
 
     <!-- Messages -->
     <div class="timeline">
-        <!-- <h2 class="break">Recent activity</h2> -->
+        <div id="unread">
+            <h2 class="break"><span>Unread messages</span></h2>
+            <ul></ul>
+        </div>
+        <div id="read">
+            <h2 class="break"><span>Read messages</span></h2>
+            <ul></ul>
+        </div>
     </div>
 
     <!-- WebID help screen -->
@@ -64,6 +73,7 @@
 
     <script src="js/rdflib.min.js"></script>
     <script src="https://solid.github.io/solid.js/dist/solid.js"></script>
+<!--     <script src="js/solid.js"></script> -->
     <script src="js/moment.min.js"></script>
     <script src="app/app.js"></script>
 </body>

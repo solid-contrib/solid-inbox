@@ -29,7 +29,9 @@ Inbox = (function () {
     var webSockets = {};
 
     var sortedRead = [];
-    var sortedUnead = [];
+    var sortedUnread = [];
+
+    var firstLoad = true;
 
     // Initialize app
     var init = function() {
@@ -53,6 +55,8 @@ Inbox = (function () {
         if (len(user) === 0 || !user.authenticated) {
             showLogin();
         }
+
+        // show loading
     };
 
     var showError = function(err) {
@@ -69,50 +73,46 @@ Inbox = (function () {
         return -1;
     };
 
-    var addToList = function(elem, msg, showGrowl) {
-        console.log("Adding to ", elem, "for message", msg.url);
+    var addToList = function(elem, msg, showGrowl, force) {
         if (elem == 'read') {
             var sortedMsgs = sortedRead;
             var exists = listExists(msg.url, sortedRead);
         } else {
-            var sortedMsgs = sortedUnead;
-            var exists = listExists(msg.url, sortedUnead);
+            var sortedMsgs = sortedUnread;
+            var exists = listExists(msg.url, sortedUnread);
         }
         var list = document.getElementById(elem).querySelector('ul');
         document.getElementById(elem).classList.remove('hidden');
-        // convert msg to HTML
-        var article = msgToHTML(msg, true);
 
         // sort array and add to dom
         // TODO improve it later
         if (exists < 0) {
-            console.log(msg.url, "doesn't exist, pushing to", elem);
-            console.log(sortedMsgs);
-            sortedMsgs.push({date: msg.created, url: msg.url, lock: false});
-
+            sortedMsgs.push({date: msg.created, url: msg.url});
             sortedMsgs.sort(function(a,b) {
                 var c = new Date(a.date);
                 var d = new Date(b.date);
                 return d-c;
             });
-            console.log(sortedMsgs);
-            for(var i=0; i<sortedMsgs.length; i++) {
-                var p = sortedMsgs[i];
-                if (p.url == msg.url) {
-                    if (i === sortedMsgs.length-1) {
-                        console.log(i, "appending", msg.url);
-                        list.appendChild(article);
-                    } else {
-                        var before = document.getElementById(sortedMsgs[i+1]);
-                        console.log("Before:",before);
-                        if (before) {
-                            list.insertBefore(article, document.getElementById(sortedMsgs[i+1].url));
-                        } else {
+            if (force) {
+                for(var i=0; i<list.length; i++) {
+                    var p = list[i];
+                    if (p.url == msg.url) {
+                        // convert msg to HTML
+                        var article = msgToHTML(msg, true);
+
+                        if (i === list.length-1) {
                             list.appendChild(article);
+                        } else {
+                            var before = document.getElementById(list[i+1].url);
+                            if (before) {
+                                list.insertBefore(article, document.getElementById(list[i+1].url));
+                            } else {
+                                list.appendChild(article);
+                            }
                         }
+                        break;
                     }
-                    break;
-                }
+                };
             }
         }
         if (!msgs[msg.url] && showGrowl) {
@@ -128,8 +128,8 @@ Inbox = (function () {
             var sortedMsgs = sortedRead;
             var exists = listExists(msg.url, sortedRead);
         } else {
-            var sortedMsgs = sortedUnead;
-            var exists = listExists(msg.url, sortedUnead);
+            var sortedMsgs = sortedUnread;
+            var exists = listExists(msg.url, sortedUnread);
         }
         if (exists >= 0) {
             sortedMsgs.splice(exists, 1);
@@ -143,12 +143,32 @@ Inbox = (function () {
         }
     };
 
+    // Sort messages by date and add them to DOM
+    var sortDOM = function(listType) {
+        var list = (listType == 'unread')?sortedUnread:sortedRead;
+        var element = document.getElementById(listType).querySelector('ul');
+        for(var i=0; i<list.length; i++) {
+            var msg = msgs[list[i].url];
+            if (msg) {
+                if (!document.getElementById(msg.url)) {
+                    var article = msgToHTML(msg, true);
+                    if (i === list.length-1) {
+                        element.appendChild(article);
+                    } else {
+                        var before = document.getElementById(list[i+1].url);
+                        if (before) {
+                            element.insertBefore(article, document.getElementById(list[i+1].url));
+                        } else {
+                            element.appendChild(article);
+                        }
+                    }
+                }
+            }
+        };
+    };
+
     // Load messages from an inbox container
     var loadInbox = function(url, showGrowl) {
-        // select elements holding all the messages
-        var unread = document.getElementById('unread').querySelector('ul');
-        var read = document.getElementById('read').querySelector('ul');
-
         // find known resources
         Solid.web.get(url).then(
             function(g) {
@@ -181,38 +201,50 @@ Inbox = (function () {
                 var isDone = function() {
                     if (toLoad <= 0) {
                         hideLoading();
-                        if (sortedUnead.length > 0) {
-                            document.querySelector('title').innerHTML = "Solid Inbox - ("+sortedUnead.length+" unread)";
+                        if (sortedUnread.length > 0) {
+                            document.querySelector('title').innerHTML = "Solid Inbox - ("+sortedUnread.length+" unread)";
                         } else {
                             document.querySelector('title').innerHTML = "Solid Inbox";
                         }
+                        sortDOM('unread');
+                        sortDOM('read');
                     }
                 }
 
                 _messages.forEach(function(url){
-                    loadMessage(url).then(
-                        function(msg) {
-                            if (len(msg) === 0) {
-                                toLoad--;
-                                isDone();
-                            } else {
-                                if (msg.read) {
-                                    addToList('read', msg);
+                    if (!msgs[url]) {
+                        // show loading
+                        if (firstLoad) {
+                            showLoading();
+                        }
+
+                        loadMessage(url).then(
+                            function(msg) {
+                                if (len(msg) === 0) {
+                                    toLoad--;
+                                    isDone();
                                 } else {
-                                    addToList('unread', msg, showGrowl);
+                                    if (msg.read) {
+                                        addToList('read', msg);
+                                    } else {
+                                        addToList('unread', msg, showGrowl);
+                                    }
+                                    toLoad--;
+                                    isDone();
                                 }
+                            }
+                        )
+                        .catch(
+                            function(err) {
+                                showError(err);
                                 toLoad--;
                                 isDone();
                             }
-                        }
-                    )
-                    .catch(
-                        function(err) {
-                            showError(err);
-                            toLoad--;
-                            isDone();
-                        }
-                    );
+                        );
+                    } else {
+                        toLoad--;
+                        isDone();
+                    }
                 });
 
                 // setup WebSocket listener since we are sure we have msgs in this container
@@ -492,11 +524,20 @@ Inbox = (function () {
             Solid.web.del(url).then(
                 function(done) {
                     if (done) {
-                        delete msgs[url];
                         document.getElementById(url).remove();
                         document.getElementById('delete').remove();
+                        if (listExists(url, sortedRead) >= 0) {
+                            removeFromList(sortedRead, msgs[url]);
+                        } else if (listExists(url, sortedUnread) >= 0) {
+                            removeFromList(sortedUnread, msgs[url]);
+                        }
+                        if (sortedUnread.length > 0) {
+                            document.querySelector('title').innerHTML = "Solid Inbox - ("+sortedUnread.length+" unread)";
+                        } else {
+                            document.querySelector('title').innerHTML = "Solid Inbox";
+                        }
+                        delete msgs[url];
                         notify('success', 'Successfully deleted message');
-                        resetAll();
                     }
                 }
             )
@@ -540,7 +581,6 @@ Inbox = (function () {
                 break;
             }
         }
-        console.log(url, toDel, toIns);
         Solid.web.patch(url, toDel, toIns).then(function(meta) {
             msgs[url].read = false;
             updateMessage(msgs[url], true);
@@ -560,9 +600,9 @@ Inbox = (function () {
             var toList = 'unread';
         }
         removeFromList(fromList, msg);
-        addToList(toList, msg);
-        if (sortedUnead.length > 0) {
-            document.querySelector('title').innerHTML = "Solid Inbox - ("+sortedUnead.length+" unread)";
+        addToList(toList, msg, true, true);
+        if (sortedUnread.length > 0) {
+            document.querySelector('title').innerHTML = "Solid Inbox - ("+sortedUnread.length+" unread)";
         } else {
             document.querySelector('title').innerHTML = "Solid Inbox";
         }
@@ -725,7 +765,7 @@ Inbox = (function () {
                 if (msg.data && msg.data.slice(0, 3) === 'pub') {
                     // resource updated
                     var res = trim(msg.data.slice(3, msg.data.length));
-                    console.log("Got new message: pub", res);
+                    firstLoad = false;
                     loadInbox(res, true); //refetch messages and notify
                 }
             }
@@ -895,10 +935,12 @@ Inbox = (function () {
 
     // loading animation
     var hideLoading = function() {
-        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('loading-unread').classList.add('hidden');
+        document.getElementById('loading-read').classList.add('hidden');
     }
     var showLoading = function() {
-        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('loading-unread').classList.remove('hidden');
+        document.getElementById('loading-read').classList.remove('hidden');
     }
 
     // save authors to localStorage
@@ -997,6 +1039,7 @@ Inbox = (function () {
         login: login,
         logout: logout,
         sortedRead: sortedRead,
-        sortedUnead: sortedUnead
+        sortedUnread: sortedUnread,
+        sortDOM: sortDOM
     };
 }(this));

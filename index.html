@@ -16,12 +16,6 @@
 
     </div>
 
-    <!-- Loading animation -->
-    <div id="loading" class="center-text hidden">
-        <div class="loadingbox"></div>
-        <p>Loading message(s)...</p>
-    </div>
-
     <!-- Init -->
     <div id="init" class="center-text hidden">
         <h1>You must log in to read your messages</h1>
@@ -35,10 +29,20 @@
     <div class="timeline">
         <div id="unread" class="hidden">
             <h2 class="break"><span>Unread messages</span></h2>
+            <!-- Loading animation -->
+            <div id="loading-unread" class="loading center-text hidden">
+                <div class="loadingbox"></div>
+                <p>Loading message(s)...</p>
+            </div>
             <ul></ul>
         </div>
         <div id="read" class="hidden">
             <h2 class="break"><span>Read messages</span></h2>
+            <!-- Loading animation -->
+            <div id="loading-read" class="loading center-text hidden">
+                <div class="loadingbox"></div>
+                <p>Loading message(s)...</p>
+            </div>
             <ul></ul>
         </div>
     </div>

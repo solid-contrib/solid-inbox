@@ -57,9 +57,11 @@ Inbox = (function () {
     var loadInbox = function(url, showGrowl) {
         // select element holding all the messages
         var parentdiv = document.querySelector(config.parentElement);
-        // clear previous messages
-        parentdiv.innerHTML = '';
-        var list = document.createElement('ul');
+        var list = document.querySelector('ul');
+        if (list) {
+            list.remove();
+        }
+        list = document.createElement('ul');
         list.id = 'list';
         parentdiv.appendChild(list);
 
@@ -434,21 +436,51 @@ Inbox = (function () {
     };
 
     // Transform a message (object) to HTML
-    var msgToHTML = function(note) {
+    var msgToHTML = function(msg) {
+        var author = authors[msg.author];
+        console.log(author);
         var element = document.createElement('li');
-        element.id = note.url;
+        element.id = msg.url;
 
         var span = document.createElement('span');
         span.classList.add('date');
-        span.innerHTML = formatDate(note.date);
+        span.innerHTML = formatDate(msg.date);
         element.appendChild(span);
 
+        // create header
+        var header = document.createElement('header');
+        header.classList.add('msg-header');
+        // append header to article
+        element.appendChild(header);
+
+        // set avatar
+        var avatar = document.createElement('img');
+        avatar.classList.add('msg-picture');
+        avatar.src = author.picture;
+        avatar.alt = avatar.title = author.name+"'s picture";
+        // append picture to header
+        var avatarLink = document.createElement('a');
+        avatarLink.href = msg.author;
+        avatarLink.setAttribute('target', '_blank');
+        avatarLink.appendChild(avatar);
+        header.appendChild(avatarLink);
+
+        // create meta author
+        var metaAuthor = document.createElement('a');
+        metaAuthor.classList.add('msg-author');
+        metaAuthor.href = msg.author;
+        metaAuthor.setAttribute('target', '_blank');
+        metaAuthor.innerHTML = author.name;
+        // append meta author to meta
+        header.appendChild(metaAuthor);
+
+
         var h1 = document.createElement('h1');
-        h1.innerHTML = note.title;
+        h1.innerHTML = msg.title;
         element.appendChild(h1);
 
         var body = document.createElement('p');
-        body.innerHTML = note.body.linkify();
+        body.innerHTML = msg.body.linkify();
         element.appendChild(body);
 
         return element;

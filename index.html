@@ -1,42 +1,65 @@
 <!DOCTYPE html>
 <html >
-    <head>
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
     <title>Inbox timeline</title>
+    <link href='https://fonts.googleapis.com/css?family=Roboto:400,300' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
-    <div class="timeline">
-        <ul>
-            <li>
-              <span class="date">Jan 15th, 2016</span>
-              <h1>Some headline</h1>
-              <p>This is where we would include some awesome sub-text or description text. This is where we would include some awesome sub-text or description text</p>
-              <p>Multiple paragraphs can even be a neat thing we use here.</p>
-            </li>
-            <li>
-              <span class="date">Jan 15th, 2016</span>
-              <h1>Some headline, with an image</h1>
-              <p>This is where we would include some awesome sub-text or description text</p></li>
-            <li>
-              <span class="date">Jan 15th, 2016, with a longer title to see how it works when it breaks.</span>
-              <h1>Item One, some headline</h1>
-              <p>This is where we would include some awesome sub-text or description text</p></li>
-            <li>
-              <span class="date">Jan 15th, 2016</span>
-              <h1>Some headline, with video!</h1>
-              <p>This is where we would include some awesome sub-text or description text</p></li>
-            <li>
-              <span class="date">Jan 15th, 2016</span>
-              <h1>Some headline</h1>
-              <p>This is where we would include some awesome sub-text or description text. This is where we would include some awesome sub-text or description text</p>
-              <p>Multiple paragraphs can even be a neat thing we use here.</p>
-            </li>
-          </ul>
-      <!-- <h2 class="break">This is a section header or timeline breaker</h2> -->
+    <!-- Loading animation -->
+    <div id="loading" class="center-text hidden">
+        <div class="loadingbox"></div>
+        <p>Loading message(s)...</p>
     </div>
 
-  </body>
+    <!-- Init -->
+    <div id="init" class="center-text hidden">
+        <h1>You must log in to read your messages</h1>
+        <p>If you would like, Plume can attempt to find your Inbox, or help you create one.</p>
+        <p>Do you use WebID? <a href="#" onclick="Inbox.toggleInfo()">[?]</a></p>
+        <a class="action-button" href="#" onclick="Inbox.login()" title="I use WebID">Yes, I use WebID</a>
+        <a class="action-button" href="#" onclick="Inbox.signup()" title="Sign up for a WebID">No, I need a WebID</a>
+    </div>
+
+    <!-- Messages -->
+    <div class="timeline">
+        <!-- <h2 class="break">This is a section header or timeline breaker</h2> -->
+    </div>
+
+    <!-- WebID help screen -->
+    <div id="webid-info" class="overlay">
+        <div class="overlay-text">
+            <h2>What is a WebID?</h2>
+            <p>
+                A WebID is a URL for you. It allows you to set up a reusable identity
+                and a profile, with friends, pictures and all kinds of things.
+            </p>
+            <p>
+                Unlike social networks, with WebID you reuse your identity and personal
+                data in a decentralized, privacy-friendly way, across multiple applications
+                and services on the Web. It works like having an account on a social
+                networking site, but it isn't restricted to just that site. It is very
+                open because the information can connect to other people, apps, projects
+                and so on, without everyone having to join the same social networking site.
+                (<a href="http://www.w3.org/wiki/WebID" target="_blank">more information</a>)
+            </p>
+            <p>
+                When you create a WebID account, you may also get storage space on the
+                selected server. The amount of available space can vary from server to
+                server. Additionally, a common list of workspaces (i.e. dedicated folders)
+                maye be created by default, such as <i>Public</i>, <i>Private</i>,
+                <i>Family</i>, <i>Work</i>, etc.
+            </p>
+            <div class="float-right"><a href="#" class="action-button">Close</a></div>
+        </div>
+    </div>
+
+    <script src="js/rdflib.min.js"></script>
+    <script src="https://solid.github.io/solid.js/dist/solid.js"></script>
+    <script src="js/moment.min.js"></script>
+    <script src="app/app.js"></script>
+</body>
 </html>

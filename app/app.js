@@ -181,6 +181,11 @@ Inbox = (function () {
                 var isDone = function() {
                     if (toLoad <= 0) {
                         hideLoading();
+                        if (sortedUnead.length > 0) {
+                            document.querySelector('title').innerHTML = "Solid Inbox - ("+sortedUnead.length+" unread)";
+                        } else {
+                            document.querySelector('title').innerHTML = "Solid Inbox";
+                        }
                     }
                 }
 
@@ -447,7 +452,7 @@ Inbox = (function () {
     };
 
     var confirmDelete = function(url) {
-        var msgTitle = (msgs[url].title)?'<br><p><strong>'+msgs[url].title+'</strong></p>':'this post';
+        var msgTitle = (msgs[url].title)?'<br><p><strong>'+msgs[url].title+'</strong></p>':'this message';
         var div = document.createElement('div');
         div.id = 'delete';
         div.classList.add('dialog');
@@ -490,14 +495,14 @@ Inbox = (function () {
                         delete msgs[url];
                         document.getElementById(url).remove();
                         document.getElementById('delete').remove();
-                        notify('success', 'Successfully deleted post');
+                        notify('success', 'Successfully deleted message');
                         resetAll();
                     }
                 }
             )
             .catch(
                 function(err) {
-                    notify('error', 'Could not delete post');
+                    notify('error', 'Could not delete message');
                     resetAll();
                 }
             );
@@ -556,6 +561,11 @@ Inbox = (function () {
         }
         removeFromList(fromList, msg);
         addToList(toList, msg);
+        if (sortedUnead.length > 0) {
+            document.querySelector('title').innerHTML = "Solid Inbox - ("+sortedUnead.length+" unread)";
+        } else {
+            document.querySelector('title').innerHTML = "Solid Inbox";
+        }
     }
 
     // Transform a message (object) to HTML
@@ -628,7 +638,7 @@ Inbox = (function () {
         del.innerHTML = 'Delete';
         footer.appendChild(del);
 
-        // append footer to post
+        // append footer to message
         element.appendChild(footer);
 
         return element;
@@ -716,7 +726,7 @@ Inbox = (function () {
                     // resource updated
                     var res = trim(msg.data.slice(3, msg.data.length));
                     console.log("Got new message: pub", res);
-                    loadInbox(res, true); //refetch posts and notify
+                    loadInbox(res, true); //refetch messages and notify
                 }
             }
             socket.onclose = function() {

@@ -87,21 +87,28 @@ Inbox = (function () {
         // TODO improve it later
         if (exists < 0) {
             console.log(msg.url, "doesn't exist, pushing to", elem);
-            sortedMsgs.push({date: msg.created, url: msg.url});
+            console.log(sortedMsgs);
+            sortedMsgs.push({date: msg.created, url: msg.url, lock: false});
 
             sortedMsgs.sort(function(a,b) {
                 var c = new Date(a.date);
                 var d = new Date(b.date);
                 return d-c;
             });
+            console.log(sortedMsgs);
             for(var i=0; i<sortedMsgs.length; i++) {
                 var p = sortedMsgs[i];
                 if (p.url == msg.url) {
                     if (i === sortedMsgs.length-1) {
+                        console.log(i, "appending", msg.url);
                         list.appendChild(article);
                     } else {
-                        if (document.getElementById(sortedMsgs[i+1])) {
+                        var before = document.getElementById(sortedMsgs[i+1]);
+                        console.log("Before:",before);
+                        if (before) {
                             list.insertBefore(article, document.getElementById(sortedMsgs[i+1].url));
+                        } else {
+                            list.appendChild(article);
                         }
                     }
                     break;

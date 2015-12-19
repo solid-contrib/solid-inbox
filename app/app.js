@@ -227,7 +227,7 @@ Inbox = (function () {
                                     if (msg.read) {
                                         addToList('read', msg);
                                     } else {
-                                        addToList('unread', msg, showGrowl);
+                                        addToList('unread', msg);
                                     }
                                     toLoad--;
                                     isDone();
@@ -524,12 +524,11 @@ Inbox = (function () {
             Solid.web.del(url).then(
                 function(done) {
                     if (done) {
-                        document.getElementById(url).remove();
                         document.getElementById('delete').remove();
                         if (listExists(url, sortedRead) >= 0) {
-                            removeFromList(sortedRead, msgs[url]);
+                            removeFromList('read', msgs[url]);
                         } else if (listExists(url, sortedUnread) >= 0) {
-                            removeFromList(sortedUnread, msgs[url]);
+                            removeFromList('unread', msgs[url]);
                         }
                         if (sortedUnread.length > 0) {
                             document.querySelector('title').innerHTML = "Solid Inbox - ("+sortedUnread.length+" unread)";

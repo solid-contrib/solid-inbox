@@ -11,84 +11,105 @@
 </head>
 
 <body>
-    <!-- Menu -->
-    <div id="user" class="menu-container hidden">
-        <div class="menu">
-            <a href="#" id="user-link" target="_blank">
-                <img id="user-picture" src="" alt="">
-                <div id="user-name">TEST USER</div>
-            </a>
-            <a href="#" id="logout" class="action-button float-right" onclick="Inbox.logout()">Logout</a>
-        </div>
-    </div>
-
-    <!-- User -->
-    <div id="user">
-
-    </div>
-
-    <!-- Init -->
-    <div id="init" class="center-text hidden">
-        <h1>You must log in to read your messages</h1>
-        <p>If you would like, Plume can attempt to find your Inbox, or help you create one.</p>
-        <p>Do you use WebID? <a href="#" onclick="Inbox.toggleInfo()">[?]</a></p>
-        <a class="action-button" href="#" onclick="Inbox.login()" title="I use WebID">Yes, I use WebID</a>
-        <a class="action-button" href="#" onclick="Inbox.signup()" title="Sign up for a WebID">No, I need a WebID</a>
-    </div>
-
-    <!-- Messages -->
-    <div class="timeline">
-        <div id="unread" class="hidden">
-            <h2 class="break"><span>Unread messages</span></h2>
-            <!-- Loading animation -->
-            <div id="loading-unread" class="loading center-text hidden">
-                <div class="loadingbox"></div>
-                <p>Loading message(s)...</p>
+    <div class="content">
+        <!-- Menu -->
+        <div id="user" class="menu-container hidden">
+            <div class="menu">
+                <a href="#" id="user-link" target="_blank">
+                    <img id="user-picture" src="" alt="">
+                    <div id="user-name">TEST USER</div>
+                </a>
+                <a href="#" id="logout" class="action-button float-right" onclick="Inbox.logout()">Logout</a>
             </div>
-            <ul></ul>
         </div>
-        <div id="read" class="hidden">
-            <h2 class="break"><span>Read messages</span></h2>
-            <!-- Loading animation -->
-            <div id="loading-read" class="loading center-text hidden">
-                <div class="loadingbox"></div>
-                <p>Loading message(s)...</p>
+
+        <!-- Init -->
+        <div id="init" class="center-text hidden">
+            <h1>You must log in to read your messages.</h1>
+            <p>If you don't use or know about WebID <a href="#" onclick="Inbox.toggleInfo()">[?]</a>, you can sign up for one using the button below.</p>
+            <p>Do you use WebID?</p>
+            <a class="action-button" href="#" onclick="Inbox.login()" title="I use WebID">Yes, I use WebID</a>
+            <a class="action-button" href="#" onclick="Inbox.signup()" title="Sign up for a WebID">No, I need a WebID</a>
+        </div>
+
+        <!-- Bootstrap new inbox -->
+        <div id="onboarding" class="hidden">
+            <br>
+            <h1 class="center-text">Unable to find your inbox.</h1>
+            <p class="center-text">If you would like, this application can help you create one.</p>
+            <h2 class="center-text">Select a public <em>and</em> writable profile:</h2>
+            <fieldset id="profiles"></fieldset>
+            <h2 class="center-text">Where should the new inbox will be created:</h2>
+            <fieldset id="workspaces"></fieldset>
+            <p class="center-text">
+                <a class="action-button" href="#" onclick="Inbox.createInbox()" title="Create inbox">Create inbox</a>
+            </p>
+        </div>
+
+        <!-- Messages -->
+        <div class="timeline">
+            <div id="empty" class="center-text hidden">
+                <h2>You have not received any messages yet.</h2>
             </div>
-            <ul></ul>
+            <div id="unread" class="hidden">
+                <h2 class="break"><span>Unread messages</span></h2>
+                <!-- Loading animation -->
+                <div id="loading-unread" class="loading center-text hidden">
+                    <div class="loadingbox"></div>
+                    <p>Loading message(s)...</p>
+                </div>
+                <ul></ul>
+            </div>
+            <div id="read" class="hidden">
+                <h2 class="break"><span>Read messages</span></h2>
+                <!-- Loading animation -->
+                <div id="loading-read" class="loading center-text hidden">
+                    <div class="loadingbox"></div>
+                    <p>Loading message(s)...</p>
+                </div>
+                <ul></ul>
+            </div>
+        </div>
+
+        <!-- Errors -->
+        <div id="error" class="center-text hidden"></div>
+
+        <!-- WebID help screen -->
+        <div id="webid-info" class="overlay">
+            <div class="overlay-text">
+                <h2>What is a WebID?</h2>
+                <p>
+                    A WebID is a URL for you. It allows you to set up a reusable identity
+                    and a profile, with friends, pictures and all kinds of things.
+                </p>
+                <p>
+                    Unlike social networks, with WebID you reuse your identity and personal
+                    data in a decentralized, privacy-friendly way, across multiple applications
+                    and services on the Web. It works like having an account on a social
+                    networking site, but it isn't restricted to just that site. It is very
+                    open because the information can connect to other people, apps, projects
+                    and so on, without everyone having to join the same social networking site.
+                    (<a href="http://www.w3.org/wiki/WebID" target="_blank">more information</a>)
+                </p>
+                <p>
+                    When you create a WebID account, you may also get storage space on the
+                    selected server. The amount of available space can vary from server to
+                    server. Additionally, a common list of workspaces (i.e. dedicated folders)
+                    maye be created by default, such as <i>Public</i>, <i>Private</i>,
+                    <i>Family</i>, <i>Work</i>, etc.
+                </p>
+                <div class="float-right"><a href="#" class="action-button">Close</a></div>
+            </div>
         </div>
     </div>
 
-    <!-- WebID help screen -->
-    <div id="webid-info" class="overlay">
-        <div class="overlay-text">
-            <h2>What is a WebID?</h2>
-            <p>
-                A WebID is a URL for you. It allows you to set up a reusable identity
-                and a profile, with friends, pictures and all kinds of things.
-            </p>
-            <p>
-                Unlike social networks, with WebID you reuse your identity and personal
-                data in a decentralized, privacy-friendly way, across multiple applications
-                and services on the Web. It works like having an account on a social
-                networking site, but it isn't restricted to just that site. It is very
-                open because the information can connect to other people, apps, projects
-                and so on, without everyone having to join the same social networking site.
-                (<a href="http://www.w3.org/wiki/WebID" target="_blank">more information</a>)
-            </p>
-            <p>
-                When you create a WebID account, you may also get storage space on the
-                selected server. The amount of available space can vary from server to
-                server. Additionally, a common list of workspaces (i.e. dedicated folders)
-                maye be created by default, such as <i>Public</i>, <i>Private</i>,
-                <i>Family</i>, <i>Work</i>, etc.
-            </p>
-            <div class="float-right"><a href="#" class="action-button">Close</a></div>
-        </div>
-    </div>
+    <footer>
+        <div class="center-text"><a href="https://github.com/solid/solid-inbox/" target="_blank">GitHub Page</a> | <a href="https://github.com/solid/solid-inbox/issues" target="_blank">GitHub Issues</a></div>
+    </footer>
 
     <script src="js/rdflib.min.js"></script>
     <script src="https://solid.github.io/solid.js/dist/solid.js"></script>
-<!--     <script src="js/solid.js"></script> -->
+    <!-- <script src="js/solid.js"></script> -->
     <script src="js/moment.min.js"></script>
     <script src="app/app.js"></script>
 </body>

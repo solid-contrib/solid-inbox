@@ -1,6 +1,7 @@
 html, body {
   font-family: 'Roboto', sans-serif;
   font-weight: 200;
+  height: 100%;
 }
 body {
   padding-top: 40px;
@@ -47,10 +48,9 @@ img {
   text-decoration: none;
   color: #fff;
 }
-.menu .actions {
+.menu #logout {
   position: relative;
-  top: 75%;
-  transform: translateY(-75%);
+  transform: translateY(10%);
 }
 .menu img {
   width: auto;
@@ -63,8 +63,8 @@ img {
 }
 .menu #user-name {
   position: relative;
-  top: 75%;
-  transform: translateY(-75%);
+  top: 70%;
+  transform: translateY(-70%);
 }
 
 /* TIMELINE */
@@ -378,7 +378,72 @@ img {
     margin-top: 30px;
 }
 
+/* Radio buttons */
+[type="radio"] {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px; margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+/* One radio button per line */
+label {
+  display: block;
+  cursor: pointer;
+  line-height: 2.5;
+  font-size: 1.2em;
+}
+
+[type="radio"] + span {
+  display: block;
+}
+
+/* the basic, unchecked style */
+[type="radio"] + span:before {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.25em;
+  border-radius: 1em;
+  border: 0.125em solid #fff;
+  box-shadow: 0 0 0 0.1em #000;
+  margin-right: 0.75em;
+  -webkit-transition: 0.5s ease all;
+  transition: 0.5s ease all;
+}
+
+/* the checked style using the :checked pseudo class */
+[type="radio"]:checked + span:before {
+  background: #3D92C9;
+  box-shadow: 0 0 0 0.15em #000;
+}
+
+/* never forget focus styling */
+[type="radio"]:focus + span:after {
+  content: '\0020\2190';
+  font-size: 1.2em;
+  line-height: 1;
+  vertical-align: -0.125em;
+}
+fieldset {
+  font-size: 1em;
+  border: 0;
+  padding: 2em;
+}
+fieldset>legend {
+  font-size: 1.5em;
+}
+
+
 /* MISC */
+.workspaces {
+  text-align: left;
+}
+
 .success {
     background: #1CB841!important;
     color: #fff;
@@ -386,7 +451,7 @@ img {
 }
 .danger {
     background: #CA3C3C!important;
-    color: #fff;
+    color: #fff!important;
     border: 0;
 }
 .danger-text {
@@ -418,8 +483,15 @@ img {
     display: none!important;
 }
 
-/* RESPONSIVE */
+.content {
+  /*height: 100%;*/
+}
 
+footer {
+  padding-bottom: 10px;
+}
+
+/* RESPONSIVE */
 @media (min-width: 48em) {
 
 }

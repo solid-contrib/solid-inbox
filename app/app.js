@@ -60,10 +60,6 @@ Inbox = (function () {
         // show loading
     };
 
-    var showError = function(err) {
-        console.log(err);
-    };
-
     // check if a message exits in an list
     var listExists = function(url, arr) {
         for (var i=0; i<arr.length; i++) {
@@ -122,7 +118,8 @@ Inbox = (function () {
         msgs[msg.url] = msg;
         // show list if it was hidden
         document.getElementById(elem).classList.remove('hidden');
-        console.log("Removing hidden from", elem, document.getElementById(elem));
+        // hide empty list
+        document.getElementById('empty').classList.add('hidden');
     };
 
     // Remove a message from a given list
@@ -196,9 +193,9 @@ Inbox = (function () {
                 if (_messages.length === 0) {
                     hideLoading();
                     if (user.authenticated) {
-                        document.querySelector('.start').classList.remove('hidden');
+                        document.getElementById('empty').classList.remove('hidden');
                     } else {
-                        document.querySelector('.init').classList.remove('hidden');
+                        document.getElementById('init').classList.remove('hidden');
                     }
                     return;
                 }
@@ -223,7 +220,7 @@ Inbox = (function () {
                         if (firstLoad) {
                             showLoading();
                         }
-
+                        // load individual message
                         loadMessage(url).then(
                             function(msg) {
                                 if (len(msg) === 0) {
@@ -269,6 +266,18 @@ Inbox = (function () {
         )
         .catch(
             function(err) {
+                console.log(err.status);
+                if (err.status) {
+                    var elem = document.getElementById('error');
+                    elem.innerHTML = "<h1>Could not open your inbox.</h1>";
+                    if (err.status === 401) {
+                        elem.innerHTML += "<h2>Unauthorized - HTTP "+err.status+"</h2>";
+                    } else if (err.status === 403) {
+                        elem.innerHTML += "<h2>Access denied - HTTP "+err.status+"</h2>";
+                    }
+                    elem.innerHTML += '<h2>You may need to log into <a href="'+url+'" target="_blank">'+url+'</a> <br> and then refresh this page.</h2>';
+                    elem.classList.remove('hidden');
+                }
                 showError(err);
             }
         );
@@ -722,7 +731,9 @@ Inbox = (function () {
     var logout = function() {
         user = {};
         clearLocalStorage();
+        clearLocalAuthors();
         hideUser();
+        hideError();
         resetTimeline();
         showLogin();
     };
@@ -750,6 +761,9 @@ Inbox = (function () {
             user.inbox = profile.inbox;
             if (user.inbox) {
                 loadInbox(user.inbox);
+            } else {
+                // need to setup WebID
+                showOnboaring(webid, g);
             }
             // display user info
             showUser();
@@ -772,6 +786,92 @@ Inbox = (function () {
     var hideUser = function() {
         document.getElementById('user').classList.add('hidden');
     };
+
+    var showOnboaring = function(webid, graph) {
+        document.getElementById('onboarding').classList.remove('hidden');
+        // get profiles
+        Solid.identity.getWritableProfiles(webid, graph).then(function(profiles){
+            var parent = document.getElementById('profiles');
+            parent.innerHTML = '';
+            profiles.forEach(function(p){
+                user.profiles = user.profiles || [];
+                user.profiles.push(p);
+                var label = document.createElement('label');
+                label.setAttribute('for', p.url);
+                parent.appendChild(label);
+                var input = document.createElement('input');
+                input.setAttribute('type', 'radio');
+                input.value = input.id = p.url;
+                input.name = 'profile';
+                if (user.webid.indexOf(p.url) >= 0) {
+                    input.checked = true;
+                }
+                label.appendChild(input);
+                var span = document.createElement('span');
+                span.innerHTML = p.url;
+                label.appendChild(span);
+            });
+            saveLocalStorage();
+        }).catch(function(err){
+            showError(err);
+        });
+        // get workspaces
+        Solid.identity.getWorkspaces(webid, graph).then(function(workspaces){
+            var parent = document.getElementById('workspaces');
+            parent.innerHTML = '';
+            workspaces.forEach(function(ws){
+                user.workspaces = user.workspaces || [];
+                user.workspaces.push(ws);
+                var label = document.createElement('label');
+                label.setAttribute('for', ws.url);
+                label.title = ws.url;
+                parent.appendChild(label);
+                var input = document.createElement('input');
+                input.setAttribute('type', 'radio');
+                input.value = input.id = ws.url;
+                input.name = 'workspace';
+                label.appendChild(input);
+                var span = document.createElement('span');
+                span.innerHTML = ws.url;
+                if (ws.title && ws.title.length > 0) {
+                    span.innerHTML = ws.title;
+                    if (ws.title.toLowerCase().indexOf('public') >= 0) {
+                        input.checked = true;
+                    }
+                }
+                label.appendChild(span);
+            });
+            saveLocalStorage();
+        }).catch(function(err){
+            showError(err);
+        });
+    };
+
+    // create inbox and add to profile
+    // TODO: treat exception (suggest manually adding triples)
+    // TODO: use different "update" methods than PATCH
+    var createInbox = function() {
+        var profileDoc = document.querySelector('input[name="profile"]:checked').value;
+        var workspace = document.querySelector('input[name="workspace"]:checked').value;
+
+        // create container
+        Solid.web.post(workspace, 'inbox', undefined, true).then(function(meta){
+            var triple = $rdf.sym(user.webid).toString() + ' ' + SOLID('inbox').toString() + ' ' + $rdf.sym(meta.url).toString() + ' .';
+            Solid.web.patch(profileDoc, [], [triple]).then(function() {
+                document.getElementById('onboarding').classList.add('hidden');
+                user.inbox = meta.url;
+                saveLocalStorage();
+                loadInbox(meta.url);
+            }).catch(function(err) {
+                // couldn't patch profile
+                showError(err);
+            });
+        }).catch(function(err){
+            notify("Could not create inbox - ", err.status);
+            showError(err);
+        });
+
+    }
 
     // Websocket
     var connectToSocket = function(wss, uri) {
@@ -954,7 +1054,19 @@ Inbox = (function () {
         var unread = document.getElementById('unread');
         unread.classList.add('hidden');
         unread.querySelector('ul').innerHTML = '';
+        document.getElementById('empty').classList.add('hidden');
+        document.getElementById('onboarding').classList.add('hidden');
     };
+
+    // error div
+    var showError = function(err) {
+        console.log(err);
+    };
+    var hideError = function() {
+        var elem = document.getElementById('error');
+        elem.classList.add('hidden');
+        elem.innerHTML = '';
+    }
 
     // loading animation
     var hideLoading = function() {
@@ -1029,6 +1141,8 @@ Inbox = (function () {
                     }
                     if (user.inbox) {
                         loadInbox(user.inbox);
+                    } else {
+                        showOnboaring(user.webid);
                     }
                 } else {
                     console.log("Deleting localStorage data because it expired");
@@ -1064,6 +1178,7 @@ Inbox = (function () {
         logout: logout,
         sortedRead: sortedRead,
         sortedUnread: sortedUnread,
-        sortDOM: sortDOM
+        sortDOM: sortDOM,
+        createInbox: createInbox
     };
 }(this));

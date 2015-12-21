@@ -93,7 +93,6 @@ Solid.auth = (function(window) {
         window.open(url+"?origin="+encodeURIComponent(window.location.origin), "Solid signup", "resizable,scrollbars,status,width="+width+",height="+height+",left="+ leftPosition + ",top=" + topPosition);
 
         var promise = new Promise(function(resolve, reject) {
-            console.log("Starting listener");
             listen().then(function(webid) {
                 return resolve(webid);
             }).catch(function(err){
@@ -107,7 +106,6 @@ Solid.auth = (function(window) {
     // Listen to login messages from child window/iframe
     var listen = function() {
         var promise = new Promise(function(resolve, reject){
-            console.log("In listen()");
             var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
             var eventListener = window[eventMethod];
             var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
@@ -154,67 +152,37 @@ Solid.identity = (function(window) {
             Solid.web.get(url).then(
                 function(graph) {
                     // set WebID
+                    url = (url.indexOf('#') >= 0)?url.slice(0, url.indexOf('#')):url;
                     var webid = graph.any($rdf.sym(url), FOAF('primaryTopic'));
                     // find additional resources to load
-                    var sameAs = graph.statementsMatching(webid, OWL('sameAs'), undefined);
-                    var seeAlso = graph.statementsMatching(webid, OWL('seeAlso'), undefined);
-                    var prefs = graph.statementsMatching(webid, PIM('preferencesFile'), undefined);
-                    var toLoad = sameAs.length + seeAlso.length + prefs.length;
-
+                    var toLoad = [];
+                    toLoad = toLoad.concat(graph.statementsMatching(webid, OWL('sameAs'), undefined, $rdf.sym(url)));
+                    toLoad = toLoad.concat(graph.statementsMatching(webid, OWL('seeAlso'), undefined, $rdf.sym(url)));
+                    toLoad = toLoad.concat(graph.statementsMatching(webid, PIM('preferencesFile'), undefined, $rdf.sym(url)));
+                    var total = toLoad.length;
                     // sync promises externally instead of using Promise.all() which fails if one GET fails
                     var syncAll = function() {
-                        if (toLoad === 0) {
+                        if (total === 0) {
                             return resolve(graph);
                         }
                     }
-                    // Load sameAs files
-                    if (sameAs.length > 0) {
-                        sameAs.forEach(function(same){
-                            Solid.web.get(same.object.value, same.object.value).then(
-                                function(g) {
-                                    Solid.utils.appendGraph(graph, g);
-                                    toLoad--;
-                                    syncAll();
-                                }
-                            ).catch(
-                            function(err){
-                                toLoad--;
-                                syncAll();
-                            });
-                        });
+                    if (total === 0) {
+                        return resolve(graph);
                     }
-                    // Load seeAlso files
-                    if (seeAlso.length > 0) {
-                        seeAlso.forEach(function(see){
-                            Solid.web.get(see.object.value).then(
-                                function(g) {
-                                    Solid.utils.appendGraph(graph, g, see.object.value);
-                                    toLoad--;
-                                    syncAll();
-                                }
-                            ).catch(
-                            function(err){
-                                toLoad--;
+                    // Load other files
+                    toLoad.forEach(function(prof){
+                        Solid.web.get(prof.object.uri).then(
+                            function(g) {
+                                Solid.utils.appendGraph(graph, g, prof.object.uri);
+                                total--;
                                 syncAll();
-                            });
+                            }
+                        ).catch(
+                        function(err){
+                            total--;
+                            syncAll();
                         });
-                    }
-                    // Load preferences files
-                    if (prefs.length > 0) {
-                        prefs.forEach(function(pref){
-                            Solid.web.get(pref.object.value).then(
-                                function(g) {
-                                    Solid.utils.appendGraph(graph, g, pref.object.value);
-                                    toLoad--;
-                                    syncAll();
-                                }
-                            ).catch(
-                            function(err){
-                                toLoad--;
-                                syncAll();
-                            });
-                        });
-                    }
+                    });
                 }
             )
             .catch(
@@ -267,10 +235,74 @@ Solid.identity = (function(window) {
         return promise;
     };
 
+    // Find the user's writable profiles
+    // Return an object with the list of profile URIs
+    var getWritableProfiles = function(webid, graph) {
+        var promise = new Promise(function(resolve, reject){
+            if (!graph) {
+                // fetch profile and call function again
+                getProfile(webid).then(function(g) {
+                    getWritableProfiles(webid, g).then(function(list) {
+                        return resolve(list);
+                    }).catch(function(err) {
+                        return reject(err);
+                    });
+                }).catch(function(err){
+                    return reject(err);
+                });
+            } else {
+                // find profiles
+                var profiles = [];
+
+                webid = (webid.indexOf('#') >= 0)?webid.slice(0, webid.indexOf('#')):webid;
+                var user = graph.any($rdf.sym(webid), FOAF('primaryTopic'));
+                // find additional resources to load
+                var toLoad = [];
+                toLoad = toLoad.concat(graph.statementsMatching(user, OWL('sameAs'), undefined, $rdf.sym(webid)));
+                toLoad = toLoad.concat(graph.statementsMatching(user, OWL('seeAlso'), undefined, $rdf.sym(webid)));
+                toLoad = toLoad.concat(graph.statementsMatching(user, PIM('preferencesFile'), undefined, $rdf.sym(webid)));
+                // also check this (main) profile doc
+                toLoad = toLoad.concat({object: {uri: webid}});
+                var total = toLoad.length;
+                console.log(toLoad);
+                // sync promises externally instead of using Promise.all() which fails if one GET fails
+                var syncAll = function() {
+                    if (total === 0) {
+                        return resolve(profiles);
+                    }
+                }
+                if (total === 0) {
+                    return resolve(profiles);
+                }
+
+                // Load sameAs files
+                toLoad.forEach(function(prof){
+                    var url = prof.object.uri;
+                    Solid.web.head(url).then(
+                        function(meta) {
+                            if (meta.editable.length > 0 && profiles.indexOf(url) < 0) {
+                                profiles.push({url: url, editable: meta.editable});
+                            }
+                            total--;
+                            syncAll();
+                        }
+                    ).catch(
+                    function(err){
+                        total--;
+                        syncAll();
+                    });
+                });
+            }
+        });
+
+        return promise;
+    };
+
     // return public methods
     return {
         getProfile: getProfile,
-        getWorkspaces: getWorkspaces
+        getWorkspaces: getWorkspaces,
+        getWritableProfiles: getWritableProfiles
     };
 }(this));
 // Events
@@ -306,6 +338,9 @@ Solid.utils = (function(window) {
 
     // parse a Link header
     var parseLinkHeader = function(link) {
+        if (!link || link.length === 0) {
+            return {};
+        }
         var linkexp = /<[^>]*>\s*(\s*;\s*[^\(\)<>@,;:"\/\[\]\?={} \t]+=(([^\(\)<>@,;:"\/\[\]\?={} \t]+)|("[^"]*")))*(,|$)/g;
         var paramexp = /[^\(\)<>@,;:"\/\[\]\?={} \t]+=(([^\(\)<>@,;:"\/\[\]\?={} \t]+)|("[^"]*"))/g;
 
@@ -362,7 +397,25 @@ Solid.web = (function(window) {
         meta.meta = (h['meta'])?h['meta']:h['describedBy'];
         meta.user = (resp.getResponseHeader('User'))?resp.getResponseHeader('User'):'';
         meta.websocket = (resp.getResponseHeader('Updates-Via'))?resp.getResponseHeader('Updates-Via'):'';
-        meta.exists = false;
+        // writable/editable resource
+        meta.editable = [];
+        var patch = resp.getResponseHeader('Accept-Patch');
+        if (patch && patch.indexOf('application/sparql-update') >= 0) {
+            meta.editable.push('patch');
+        }
+        var allow = resp.getResponseHeader('Allow');
+        if (allow) {
+            if (allow.indexOf('PUT') >= 0) {
+                meta.editable.push('put')
+            }
+            if (allow.indexOf('POST') >= 0) {
+                meta.editable.push('post')
+            }
+            if (allow.indexOf('DELETE') >= 0) {
+                meta.editable.push('delete')
+            }
+        }
+
         meta.exists = (resp.status === 200)?true:false;
         meta.xhr = resp;
         return meta;
@@ -374,6 +427,7 @@ Solid.web = (function(window) {
         var promise = new Promise(function(resolve) {
             var http = new XMLHttpRequest();
             http.open('HEAD', url);
+            http.withCredentials = true;
             http.onreadystatechange = function() {
                 if (this.readyState == this.DONE) {
                     resolve(parseResponseMeta(this));
@@ -470,7 +524,6 @@ Solid.web = (function(window) {
     var patch = function(url, toDel, toIns) {
         var promise = new Promise(function(resolve, reject) {
             var data = '';
-            console.log(url, toDel, toIns);
 
             if (toDel && toDel.length > 0) {
                 for (var i=0; i<toDel.length; i++) {
@@ -488,7 +541,6 @@ Solid.web = (function(window) {
                     data += "INSERT DATA { " + toIns[i] +" }";
                 }
             }
-            console.log("Data:"+data);
 
             var http = new XMLHttpRequest();
             http.open('PATCH', url);

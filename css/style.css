@@ -2,6 +2,9 @@ html, body {
   font-family: 'Roboto', sans-serif;
   font-weight: 200;
 }
+body {
+  padding-top: 40px;
+}
 
 * {
   -moz-box-sizing: border-box;
@@ -22,6 +25,49 @@ img {
   max-width: 100%;
 }
 
+/* MENU */
+.menu-container {
+  width: 100%;
+  padding: 10px;
+  background: rgba(0,0,0,0.9);
+  color: #fff;
+  position: fixed;
+  text-align: left;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+.menu {
+  display: inline-block;
+  float: left;
+  width: 100%;
+}
+.menu a, .menu a:hover, .menu a:focus, .menu a:visited {
+  text-decoration: none;
+  color: #fff;
+}
+.menu .actions {
+  position: relative;
+  top: 75%;
+  transform: translateY(-75%);
+}
+.menu img {
+  width: auto;
+  height: 40px;
+  border-radius: 50%;
+  padding-right: 5px;
+}
+.menu div {
+  display:inline-block;
+}
+.menu #user-name {
+  position: relative;
+  top: 75%;
+  transform: translateY(-75%);
+}
+
+/* TIMELINE */
 .timeline {
   padding: 20px;
   max-width: 600px;
@@ -241,7 +287,7 @@ img {
 /* ACTION BUTTONS */
 .action-button {
     background-color: #fff;
-    color: #777;
+    color: #777!important;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     font-size: 60%;

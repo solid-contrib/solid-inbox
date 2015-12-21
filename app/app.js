@@ -5,6 +5,7 @@ Inbox = (function () {
 
     var config = Inbox.config || {};
     var appURL = window.location.origin+window.location.pathname;
+    var profileViewer = 'https://linkeddata.github.io/profile-editor/#/profile/view?webid=';
 
     // RDF
     var PROXY = "https://databox.me/,proxy?uri={uri}";
@@ -82,7 +83,6 @@ Inbox = (function () {
             var exists = listExists(msg.url, sortedUnread);
         }
         var list = document.getElementById(elem).querySelector('ul');
-        document.getElementById(elem).classList.remove('hidden');
 
         // sort array and add to dom
         // TODO improve it later
@@ -120,6 +120,9 @@ Inbox = (function () {
         }
         // add msg to local list
         msgs[msg.url] = msg;
+        // show list if it was hidden
+        document.getElementById(elem).classList.remove('hidden');
+        console.log("Removing hidden from", elem, document.getElementById(elem));
     };
 
     // Remove a message from a given list
@@ -165,7 +168,11 @@ Inbox = (function () {
                 }
             }
         };
-    };
+        // show list if it was hidden
+        if (list.length > 0) {
+            document.getElementById(listType).classList.remove('hidden');
+        }
+   };
 
     // Load messages from an inbox container
     var loadInbox = function(url, showGrowl) {
@@ -187,7 +194,6 @@ Inbox = (function () {
                 }
 
                 if (_messages.length === 0) {
-                    resetAll();
                     hideLoading();
                     if (user.authenticated) {
                         document.querySelector('.start').classList.remove('hidden');
@@ -543,7 +549,7 @@ Inbox = (function () {
             .catch(
                 function(err) {
                     notify('error', 'Could not delete message');
-                    resetAll();
+                    showError(err);
                 }
             );
         }
@@ -699,7 +705,6 @@ Inbox = (function () {
         Solid.auth.login().then(function(webid){
             gotWebID(webid);
         }).catch(function(err) {
-            console.log(err);
             notify('error', "Authentication failed");
             showError(err);
         });
@@ -709,17 +714,17 @@ Inbox = (function () {
         Solid.auth.signup().then(function(webid) {
             gotWebID(webid);
         }).catch(function(err) {
-            console.log("Err", err);
             notify('error', "Authentication failed");
             showError(err);
         });
     };
     // Log user out
     var logout = function() {
-        user = defaultUser;
+        user = {};
         clearLocalStorage();
+        hideUser();
+        resetTimeline();
         showLogin();
-        window.location.reload();
     };
 
     var showLogin = function() {
@@ -746,11 +751,26 @@ Inbox = (function () {
             if (user.inbox) {
                 loadInbox(user.inbox);
             }
+            // display user info
+            showUser();
             // add self to authors list
             authors[webid] = user;
             saveLocalAuthors();
             saveLocalStorage();
         });
+    };
+
+    // update DOM with logged in user details and show element
+    var showUser = function() {
+        document.getElementById('user-link').href = profileViewer + encodeURIComponent(user.webid);
+        document.getElementById('user-name').innerHTML = user.name;
+        document.getElementById('user-picture').src = user.picture;
+        document.getElementById('user-picture').setAttribute('alt', user.name);
+        document.getElementById('user').classList.remove('hidden');
+    };
+    // hide user details
+    var hideUser = function() {
+        document.getElementById('user').classList.add('hidden');
     };
 
     // Websocket
@@ -926,10 +946,14 @@ Inbox = (function () {
     };
 
     // reset to initial view
-    var resetAll = function() {
+    var resetTimeline = function() {
         hideLoading();
-
-        window.history.pushState("", document.querySelector('title').value, window.location.pathname);
+        var read = document.getElementById('read');
+        read.classList.add('hidden');
+        read.querySelector('ul').innerHTML = '';
+        var unread = document.getElementById('unread');
+        unread.classList.add('hidden');
+        unread.querySelector('ul').innerHTML = '';
     };
 
     // loading animation
@@ -999,6 +1023,7 @@ Inbox = (function () {
                 if (Date.now() < dateValid) {
                     config = data.config;
                     user = data.user;
+                    showUser();
                     if (user.authenticated) {
                         hideLogin();
                     }

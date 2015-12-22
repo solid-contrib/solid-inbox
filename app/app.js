@@ -557,7 +557,8 @@ Inbox = (function () {
             )
             .catch(
                 function(err) {
-                    notify('error', 'Could not delete message');
+                    notify('error', 'Could not delete message - HTTP '+err.status);
+                    document.getElementById('delete').remove();
                     showError(err);
                 }
             );

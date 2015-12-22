@@ -228,9 +228,9 @@ Inbox = (function () {
                                     isDone();
                                 } else {
                                     if (msg.read) {
-                                        addToList('read', msg);
+                                        addToList('read', msg, showGrowl);
                                     } else {
-                                        addToList('unread', msg);
+                                        addToList('unread', msg, showGrowl);
                                     }
                                     toLoad--;
                                     isDone();

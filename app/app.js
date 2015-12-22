@@ -1181,6 +1181,7 @@ Inbox = (function () {
         markRead: markRead,
         markUnread: markUnread,
         login: login,
+        signup: signup,
         logout: logout,
         sortedRead: sortedRead,
         sortedUnread: sortedUnread,

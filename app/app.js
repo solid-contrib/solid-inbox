@@ -848,14 +848,14 @@ Inbox = (function () {
     };
 
     // create inbox and add to profile
-    // TODO: treat exception (suggest manually adding triples)
-    // TODO: use different "update" methods than PATCH
+    // TODO: set acl for the inbox!!!!
     var createInbox = function() {
         var profileDoc = document.querySelector('input[name="profile"]:checked').value;
         var workspace = document.querySelector('input[name="workspace"]:checked').value;
 
         // create container
         Solid.web.post(workspace, 'inbox', undefined, true).then(function(meta){
+            // TODO: use different "update" methods than PATCH
             var triple = $rdf.sym(user.webid).toString() + ' ' + SOLID('inbox').toString() + ' ' + $rdf.sym(meta.url).toString() + ' .';
             Solid.web.patch(profileDoc, [], [triple]).then(function() {
                 document.getElementById('onboarding').classList.add('hidden');
@@ -864,14 +864,18 @@ Inbox = (function () {
                 loadInbox(meta.url);
             }).catch(function(err) {
                 // couldn't patch profile
+                notify('error', "Could not update your profile - HTTP " + err.status);
                 showError(err);
+                var errElem = document.getElementById('error');
+                errElem.innerHTML = "<h2>There was a problem updating your profile.</h2>";
+                errElem.innerHTML += "<p>You can also try to manually add the following triple in your profile document:</p>";
+                errElem.innerHTML += '<p>'+triple+'</p>';
             });
         }).catch(function(err){
-            notify("Could not create inbox - ", err.status);
+            notify('error', "Could not create inbox - HTTP " + err.status);
             showError(err);
         });
-
-    }
+    };
 
     // Websocket
     var connectToSocket = function(wss, uri) {
@@ -1060,12 +1064,13 @@ Inbox = (function () {
 
     // error div
     var showError = function(err) {
+        var elem = document.getElementById('error');
+        elem.innerHTML = '';
         console.log(err);
     };
     var hideError = function() {
         var elem = document.getElementById('error');
         elem.classList.add('hidden');
-        elem.innerHTML = '';
     }
 
     // loading animation
@@ -1153,7 +1158,7 @@ Inbox = (function () {
                 localStorage.removeItem(appURL);
             }
         } catch(err) {
-            notify('sticky', 'You have disabled cookies. Persistence functionality is disabled.');
+            notify('sticky', "You have disabled cookies. Persistence functionality is disabled.");
             console.log(err);
         }
     };

@@ -1,5 +1,6 @@
-var Inbox = Inbox || {};
+var Solid = require('solid.js')
 
+var Inbox = Inbox || {};
 Inbox = (function () {
     'use strict';
 
@@ -397,6 +398,7 @@ Inbox = (function () {
                 authors[webid].updated = true;
                 authors[webid].name = profile.name;
                 authors[webid].picture = profile.picture;
+                authors[webid].inbox = profile.inbox;
                 // save to localStorage
                 saveLocalAuthors();
                 // release lock
@@ -416,6 +418,33 @@ Inbox = (function () {
         }).
         catch(function(err) {
             console.log(err);
+        });
+    };
+
+   // set the logged in user
+    var gotWebID = function(webid) {
+        // set WebID
+        hideLogin();
+        // fetch and set user profile
+        Solid.identity.getProfile(webid).then(function(g) {
+            console.log(g)
+            user = getUserProfile(webid, g);
+            user.authenticated = true;
+            user.date = Date.now();
+            // set inbox
+            if (user.inbox) {
+                loadInbox(user.inbox);
+            } else {
+                // need to setup WebID
+                showOnboaring(webid, g);
+            }
+            console.log(user);
+            // display user info
+            showUser();
+            // add self to authors list
+            authors[webid] = user;
+            saveLocalAuthors();
+            saveLocalStorage();
         });
     };
 
@@ -495,7 +524,117 @@ Inbox = (function () {
             profile.inbox = inbox.uri;
         }
 
+        profile.knows = [];
+        var people = g.statementsMatching(webidRes, FOAF('knows'), undefined);
+        if (people.length > 0) {
+            people.forEach(function(p){
+                profile.knows.push(p.object.uri);
+            });
+        }
+
         return profile;
+    };
+
+    // use webizen.org to lookup a webid
+    var lookupWebID = function(query) {
+        var http = new XMLHttpRequest();
+        http.open('GET', 'https://api.webizen.org/v1/search?q='+query);
+        http.onreadystatechange = function() {
+            var matches = [];
+            if (this.readyState == this.DONE && this.responseText && this.responseText.length > 0) {
+                var matches = [];
+                var results = JSON.parse(this.responseText);
+                console.log(results)
+                Object.keys(results).forEach(function(key) {
+                    var value = results[key];
+                    var match = {};
+                    match.webid = key;
+                    if (!value.img) {
+                        match.img = 'assets/generic_photo.png';
+                    } else {
+                        match.img = value.img[0];
+                    }
+                    if (value.name && value.name[0]) {
+                        match.name = value.name[0] + ' ('+key+')';
+                    } else {
+                        match.name = key;
+                    }
+                    matches.push(match);
+                });
+                return matches;
+            }
+        };
+        http.send();
+    };
+
+    var confirmNew = function() {
+        var div = document.createElement('div');
+        div.id = 'new-dialog';
+        div.classList.add('dialog');
+        var section = document.createElement('section');
+        section.innerHTML = "<h2>Send a short message to someone's inbox</h2>";
+        section.innerHTML += "<p><textarea id=\"new-msg\"></textarea></p>";
+        // add select for friends
+        if (user.knows.length > 0) {
+            var select = document.createElement('input');
+            select.id = 'to';
+            select.placeholder = "Type a name or a WebID...";
+            section.appendChild(select);
+        }
+        div.appendChild(section);
+
+        var footer = document.createElement('footer');
+
+        var send = document.createElement('a');
+        send.classList.add("action-button");
+        send.classList.add('success');
+        send.classList.add('float-left');
+        send.setAttribute('onclick', 'Inbox.sendMessage()');
+        send.innerHTML = 'Send';
+        footer.appendChild(send);
+        // delete button
+        var cancel = document.createElement('a');
+        cancel.classList.add('action-button');
+        cancel.classList.add('float-right');
+        cancel.setAttribute('onclick', 'Inbox.cancelNew()');
+        cancel.innerHTML = 'Cancel';
+        footer.appendChild(cancel);
+        div.appendChild(footer);
+
+        // append to body
+        document.querySelector('body').appendChild(div);
+    };
+
+    var cancelNew = function() {
+        document.getElementById('new-dialog').remove();
+    };
+
+    var sendMessage = function() {
+        var to = document.getElementById('to');
+        if (!to || to.value.length === 0) {
+            return;
+        }
+
+        var g = new $rdf.graph();
+        var me = $rdf.sym(policy.webid);
+        var body = document.getElementById('new-msg');
+        g.add($rdf.sym(''), RDF('type'), SOLID('Notification'));
+        g.add($rdf.sym(''), DCT('title'), $rdf.lit('Message'));
+        g.add($rdf.sym(''), DCT('created'), $rdf.lit(new Date().toISOString(), '', $rdf.Symbol.prototype.XSDdateTime));
+        g.add($rdf.sym(''), SIOC('content'), $rdf.lit(body));
+        g.add($rdf.sym(''), SIOC('has_creator'), $rdf.sym('#author'));
+
+        g.add($rdf.sym('#author'), RDF('type'), SIOC('UserAccount'));
+        g.add($rdf.sym('#author'), SIOC('account_of'), $rdf.sym(user.webid));
+        if (user.name) {
+          g.add($rdf.sym('#author'), FOAF('name'), $rdf.lit(user.name));
+        }
+        if (user.picture) {
+          g.add($rdf.sym('#author'), SIOC('avatar'), $rdf.sym(user.picture));
+        }
+
+        var data = new $rdf.Serializer(g).toN3(g);
+        Solid.web.post();
     };
 
     var confirmDelete = function(url) {
@@ -716,6 +855,7 @@ Inbox = (function () {
             gotWebID(webid);
         }).catch(function(err) {
             notify('error', "Authentication failed");
+            hideLoading();
             showError(err);
         });
     };
@@ -746,35 +886,6 @@ Inbox = (function () {
         document.getElementById('init').classList.add('hidden');
     };
 
-    // set the logged in user
-    var gotWebID = function(webid) {
-        // set WebID
-        user.webid = webid;
-        user.authenticated = true;
-        hideLogin();
-        // fetch and set user profile
-        Solid.identity.getProfile(webid).then(function(g) {
-            var profile = getUserProfile(webid, g);
-            user.name = profile.name;
-            user.picture = profile.picture;
-            user.date = Date.now();
-            // set inbox
-            user.inbox = profile.inbox;
-            if (user.inbox) {
-                loadInbox(user.inbox);
-            } else {
-                // need to setup WebID
-                showOnboaring(webid, g);
-            }
-            // display user info
-            showUser();
-            // add self to authors list
-            authors[webid] = user;
-            saveLocalAuthors();
-            saveLocalStorage();
-        });
-    };
-
     // update DOM with logged in user details and show element
     var showUser = function() {
         document.getElementById('user-link').href = profileViewer + encodeURIComponent(user.webid);
@@ -785,6 +896,7 @@ Inbox = (function () {
     };
     // hide user details
     var hideUser = function() {
+        document.querySelector('title').innerHTML = "Solid Inbox";
         document.getElementById('user').classList.add('hidden');
     };
 
@@ -1172,6 +1284,8 @@ Inbox = (function () {
 
     // return public functions
     return {
+        user: user,
+        authors: authors,
         loadInbox: loadInbox,
         loadMessage: loadMessage,
         toggleInfo: toggleInfo,
@@ -1186,6 +1300,10 @@ Inbox = (function () {
         sortedRead: sortedRead,
         sortedUnread: sortedUnread,
         sortDOM: sortDOM,
-        createInbox: createInbox
+        createInbox: createInbox,
+        confirmNew: confirmNew,
+        cancelNew: cancelNew,
+        sendMessage: sendMessage,
+        lookupWebID: lookupWebID
     };
 }(this));

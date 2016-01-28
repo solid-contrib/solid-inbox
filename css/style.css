@@ -350,29 +350,43 @@ img {
 
 /* DIALOG */
 .dialog {
-    width: 300px;
-    position: fixed;
-    padding: 2em;
-    text-align: center;
-    font-weight: 200;
-    background: #fff;
-    z-index: 10;
-    top: 50%;
-    left: 50%;
-    border: 1px solid #ccc;
-    box-shadow: 0 0 4px #eee;
-    border-radius: 5px;
-    -webkit-transform: translateX(-50%) translateY(-50%);
-    -moz-transform: translateX(-50%) translateY(-50%);
-    -ms-transform: translateX(-50%) translateY(-50%);
-    transform: translateX(-50%) translateY(-50%);
+  width: 300px;
+  position: fixed;
+  padding: 1em;
+  text-align: center;
+  font-weight: 200;
+  background: #fff;
+  z-index: 10;
+  top: 50%;
+  left: 50%;
+  border: 1px solid #ccc;
+  box-shadow: 0 0 4px #eee;
+  border-radius: 5px;
+  -webkit-transform: translateX(-50%) translateY(-50%);
+  -moz-transform: translateX(-50%) translateY(-50%);
+  -ms-transform: translateX(-50%) translateY(-50%);
+  transform: translateX(-50%) translateY(-50%);
 }
 .dialog p {
-    width: 100%;
+  width: 100%;
 }
 .dialog footer {
-    position: relative;
-    margin-top: 30px;
+  position: relative;
+  margin-top: 30px;
+}
+.dialog textarea {
+  height: 100px;
+  width: 100%;
+  font-size: 1em;
+}
+.dialog select {
+  max-width: 100%;
+}
+.dialog input {
+  width: 100%;
+  border: 1px solid #777;
+  padding: 5px;
+  font-size: 1em;
 }
 
 /* Radio buttons */
@@ -443,7 +457,7 @@ fieldset>legend {
 
 .success {
     background: #1CB841!important;
-    color: #fff;
+    color: #fff!important;
     border: 1px solid #1CB841;
 }
 .danger {

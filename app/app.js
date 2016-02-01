@@ -1,5 +1,6 @@
-var Inbox = Inbox || {};
+var Solid = require('solid.js')
 
+var Inbox = Inbox || {};
 Inbox = (function () {
     'use strict';
 

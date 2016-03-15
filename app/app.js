@@ -298,6 +298,7 @@ Inbox = (function () {
                         var msg = { url: subject.uri };
 
                         // add title
+                        msg.title = "";
                         var title = g.any(subject, DCT('title'));
                         if (title && title.value) {
                             msg.title = encodeHTML(title.value);
@@ -642,35 +643,56 @@ Inbox = (function () {
         element.appendChild(header);
 
         // set avatar
-        var avatar = document.createElement('img');
-        avatar.classList.add('msg-picture');
-        avatar.src = author.picture;
-        avatar.alt = avatar.title = author.name+"'s picture";
-        // append picture to header
-        var avatarLink = document.createElement('a');
-        avatarLink.href = msg.author;
-        avatarLink.setAttribute('target', '_blank');
-        avatarLink.appendChild(avatar);
-        header.appendChild(avatarLink);
+        if (author) {
+            if (author.picture) {
+                var avatar = document.createElement('img');
+                avatar.classList.add('msg-picture');
+                avatar.src = author.picture;
+                avatar.alt = avatar.title = author.name+"'s picture";
+                // append picture to header
+                var avatarLink = document.createElement('a');
+                avatarLink.href = msg.author;
+                avatarLink.setAttribute('target', '_blank');
+                avatarLink.appendChild(avatar);
+                header.appendChild(avatarLink);
+            }
+            if (author.name) {
+                // create meta author
+                var metaAuthor = document.createElement('a');
+                metaAuthor.classList.add('msg-author');
+                metaAuthor.href = msg.author;
+                metaAuthor.setAttribute('target', '_blank');
+                metaAuthor.innerHTML = author.name;
+                // append meta author to meta
+                header.appendChild(metaAuthor);
+            }
+        }
 
-        // create meta author
-        var metaAuthor = document.createElement('a');
-        metaAuthor.classList.add('msg-author');
-        metaAuthor.href = msg.author;
-        metaAuthor.setAttribute('target', '_blank');
-        metaAuthor.innerHTML = author.name;
-        // append meta author to meta
-        header.appendChild(metaAuthor);
-
-        var h1 = document.createElement('h1');
-        h1.innerHTML = '<a href="'+msg.url+'" class="msg-title" target="_blank" title="'+msg.title+'">'+msg.title+'</a>';
-        element.appendChild(h1);
+        if (msg.title) {
+            var h1 = document.createElement('h1');
+            h1.innerHTML = '<a href="'+msg.url+'" class="msg-title" target="_blank" title="'+msg.title+'">'+msg.title+'</a>';
+            element.appendChild(h1);
+        }
 
         var body = document.createElement('p');
-        body.innerHTML = msg.body.linkify();
+        body.innerHTML = (msg.body)?msg.body.linkify():"// cannot parse message or empty message";
         element.appendChild(body);
 
         var footer = document.createElement('footer');
+
+        // view source button
+        if (!msg.body) {
+            // add view source button if missing body (can't parse maybe)
+            var viewSrc = document.createElement('a');
+            viewSrc.classList.add("action-button");
+            viewSrc.classList.add("action-button-sm");
+            viewSrc.setAttribute('title', 'View source');
+            viewSrc.setAttribute('target', '_blank');
+            viewSrc.innerHTML = 'View source';
+            viewSrc.href = msg.url;
+            footer.appendChild(viewSrc);
+        }
+
         // edit button
         var mark = document.createElement('a');
         mark.classList.add("action-button");

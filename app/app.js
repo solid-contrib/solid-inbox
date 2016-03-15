@@ -19,7 +19,6 @@ Inbox = (function () {
     var DCT = $rdf.Namespace("http://purl.org/dc/terms/");
     var LDP = $rdf.Namespace("http://www.w3.org/ns/ldp#");
     var SIOC = $rdf.Namespace("http://rdfs.org/sioc/ns#");
-    var SIOC = $rdf.Namespace("http://rdfs.org/sioc/ns#");
     var SOLID = $rdf.Namespace("http://www.w3.org/ns/solid/terms#");
 
     var user = {};

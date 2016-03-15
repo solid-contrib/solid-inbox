@@ -90,18 +90,18 @@ Inbox = (function () {
                 return d-c;
             });
             if (force) {
-                for(var i=0; i<list.length; i++) {
-                    var p = list[i];
+                for(var i=0; i<sortedMsgs.length; i++) {
+                    var p = sortedMsgs[i];
                     if (p.url == msg.url) {
                         // convert msg to HTML
                         var article = msgToHTML(msg, true);
 
-                        if (i === list.length-1) {
+                        if (i === sortedMsgs.length-1) {
                             list.appendChild(article);
                         } else {
-                            var before = document.getElementById(list[i+1].url);
+                            var before = document.getElementById(sortedMsgs[i+1].url);
                             if (before) {
-                                list.insertBefore(article, document.getElementById(list[i+1].url));
+                                list.insertBefore(article, document.getElementById(sortedMsgs[i+1].url));
                             } else {
                                 list.appendChild(article);
                             }

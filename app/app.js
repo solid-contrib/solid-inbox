@@ -1,4 +1,3 @@
-var Solid = require('solid.js')
 
 var Inbox = Inbox || {};
 Inbox = (function () {
@@ -298,7 +297,10 @@ Inbox = (function () {
 
                         // add title
                         msg.title = "";
-                        var title = g.any(subject, DCT('title'));
+                        var title = g.any(subject, SIOC('title'));
+                        if (!title) {
+                            title = g.any(subject, DCT('title'));
+                        }
                         if (title && title.value) {
                             msg.title = encodeHTML(title.value);
                         }
@@ -391,8 +393,7 @@ Inbox = (function () {
             return;
         }
         authors[webid].lock = true;
-        Solid.identity.getProfile(webid).
-        then(function(g) {
+        Solid.identity.getProfile(webid).then(function(g) {
             var profile = getUserProfile(webid, g);
             if (len(profile) > 0) {
                 authors[webid].updated = true;

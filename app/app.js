@@ -642,30 +642,25 @@ Inbox = (function () {
         element.appendChild(header);
 
         // set avatar
-        if (author) {
-            if (author.picture) {
-                var avatar = document.createElement('img');
-                avatar.classList.add('msg-picture');
-                avatar.src = author.picture;
-                avatar.alt = avatar.title = author.name+"'s picture";
-                // append picture to header
-                var avatarLink = document.createElement('a');
-                avatarLink.href = msg.author;
-                avatarLink.setAttribute('target', '_blank');
-                avatarLink.appendChild(avatar);
-                header.appendChild(avatarLink);
-            }
-            if (author.name) {
-                // create meta author
-                var metaAuthor = document.createElement('a');
-                metaAuthor.classList.add('msg-author');
-                metaAuthor.href = msg.author;
-                metaAuthor.setAttribute('target', '_blank');
-                metaAuthor.innerHTML = author.name;
-                // append meta author to meta
-                header.appendChild(metaAuthor);
-            }
-        }
+        var avatar = document.createElement('img');
+        avatar.classList.add('msg-picture');
+        avatar.src = (author && author.picture)?author.picture:'../img/icon.png';
+        avatar.alt = avatar.title = (author && author.name)?author.name+"'s picture":"Anonymous author";
+        // append picture to header
+        var avatarLink = document.createElement('a');
+        avatarLink.href = (msg.author)?msg.author:'#';
+        avatarLink.setAttribute('target', '_blank');
+        avatarLink.appendChild(avatar);
+        header.appendChild(avatarLink);
+
+        // create meta author
+        var metaAuthor = document.createElement('a');
+        metaAuthor.classList.add('msg-author');
+        metaAuthor.href = (msg.author)?msg.author:'#';
+        metaAuthor.setAttribute('target', '_blank');
+        metaAuthor.innerHTML = (author && author.name)?author.name:"Anonymous author";
+        // append meta author to meta
+        header.appendChild(metaAuthor);
 
         if (msg.title) {
             var h1 = document.createElement('h1');
@@ -674,7 +669,7 @@ Inbox = (function () {
         }
 
         var body = document.createElement('p');
-        body.innerHTML = (msg.body)?msg.body.linkify():"// cannot parse message or empty message";
+        body.innerHTML = (msg.body)?msg.body.linkify():"// cannot parse message (or empty message)";
         element.appendChild(body);
 
         var footer = document.createElement('footer');

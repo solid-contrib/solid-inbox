@@ -459,7 +459,7 @@ Inbox = (function () {
         } else {
             profile.name = '';
             // use familyName and givenName instead of full name
-            var givenName = g.any(webidRes, FOAF('familyName'));
+            var givenName = g.any(webidRes, FOAF('givenName'));
             if (givenName) {
                 profile.name += givenName.value;
             }

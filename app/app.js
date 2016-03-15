@@ -644,7 +644,7 @@ Inbox = (function () {
         // set avatar
         var avatar = document.createElement('img');
         avatar.classList.add('msg-picture');
-        avatar.src = (author && author.picture)?author.picture:'../img/icon.png';
+        avatar.src = (author && author.picture)?author.picture:'img/icon.png';
         avatar.alt = avatar.title = (author && author.name)?author.name+"'s picture":"Anonymous author";
         // append picture to header
         var avatarLink = document.createElement('a');

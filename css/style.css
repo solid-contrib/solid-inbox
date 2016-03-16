@@ -208,6 +208,7 @@ img {
 .msg-title,.msg-title:hover,.msg-title:visited,.msg-title:active {
     color: #555;
     text-decoration: none;
+    font-weight: 300;
 }
 
 /* LOADING */

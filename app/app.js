@@ -3,6 +3,8 @@ var Inbox = Inbox || {};
 Inbox = (function () {
     'use strict';
 
+    var Solid = require('solid')
+
     var config = Inbox.config || {};
     var appURL = window.location.origin+window.location.pathname;
     var profileViewer = 'https://linkeddata.github.io/profile-editor/#/profile/view?webid=';
@@ -174,7 +176,8 @@ Inbox = (function () {
     var loadInbox = function(url, showGrowl) {
         // find known resources
         Solid.web.get(url).then(
-            function(g) {
+            function(response) {
+                var g = response.parsedGraph
                 var _messages = [];
                 var st = g.statementsMatching(undefined, RDF('type'), SIOC('msg'));
                 // fallback to containment triples
@@ -286,7 +289,8 @@ Inbox = (function () {
     var loadMessage = function(url) {
         var promise = new Promise(function(resolve, reject){
             Solid.web.get(url).then(
-                function(g) {
+                function(response) {
+                    var g = response.parsedGraph()
                     var subject = g.any(undefined, RDF('type'), SIOC('Post'));
                     if (!subject) {
                         subject = g.any(undefined, RDF('type'), SOLID('Notification'));
@@ -393,8 +397,8 @@ Inbox = (function () {
             return;
         }
         authors[webid].lock = true;
-        Solid.identity.getProfile(webid).then(function(g) {
-            var profile = getUserProfile(webid, g);
+        Solid.identity.getProfile(webid).then(function(response) {
+            var profile = getUserProfile(webid, response.parsedGraph);
             if (len(profile) > 0) {
                 authors[webid].updated = true;
                 authors[webid].name = profile.name;
@@ -771,8 +775,8 @@ Inbox = (function () {
         user.authenticated = true;
         hideLogin();
         // fetch and set user profile
-        Solid.identity.getProfile(webid).then(function(g) {
-            var profile = getUserProfile(webid, g);
+        Solid.identity.getProfile(webid).then(function(response) {
+            var profile = getUserProfile(webid, response.parsedGraph);
             user.name = profile.name;
             user.picture = profile.picture;
             user.date = Date.now();

@@ -786,7 +786,7 @@ Inbox = (function () {
                 loadInbox(user.inbox);
             } else {
                 // need to setup WebID
-                showOnboaring(webid, g);
+                showOnboaring(webid, response.parsedGraph);
             }
             // display user info
             showUser();

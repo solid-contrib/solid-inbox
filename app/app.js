@@ -505,12 +505,12 @@ Inbox = (function () {
     };
 
     var confirmDelete = function(url) {
-        var msgTitle = (msgs[url].title)?'<br><p><strong>'+msgs[url].title+'</strong></p>':'this message';
+        var msgTitle = (msgs[url].title)?'<br><p><strong>'+msgs[url].title+'</strong></p>':'';
         var div = document.createElement('div');
         div.id = 'delete';
         div.classList.add('dialog');
         var section = document.createElement('section');
-        section.innerHTML = "<p>You are about to delete "+msgTitle+"</p>";
+        section.innerHTML = "<p>You are about to delete the message"+msgTitle+"</p>";
         section.innerHTML += "<p>"+url+"</p>";
         div.appendChild(section);
 

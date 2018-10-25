@@ -496,7 +496,7 @@ Inbox = (function () {
             profile.picture = pic.uri;
         }
 
-        var inbox = g.any(webidRes, SOLID('inbox'));
+        var inbox = g.any(webidRes, LDP('inbox'));
         if (inbox) {
             profile.inbox = inbox.uri;
         }
@@ -879,7 +879,7 @@ Inbox = (function () {
         // create container
         Solid.web.post(workspace, 'inbox', undefined, true).then(function(meta){
             // TODO: use different "update" methods than PATCH
-            var triple = $rdf.sym(user.webid).toString() + ' ' + SOLID('inbox').toString() + ' ' + $rdf.sym(meta.url).toString() + ' .';
+            var triple = $rdf.sym(user.webid).toString() + ' ' + LDP('inbox').toString() + ' ' + $rdf.sym(meta.url).toString() + ' .';
             Solid.web.patch(profileDoc, [], [triple]).then(function() {
                 document.getElementById('onboarding').classList.add('hidden');
                 user.inbox = meta.url;

@@ -716,7 +716,7 @@ SolidProfile.prototype.appendFromGraph =
     // cannot be overwritten by related profiles
     if (!this.inbox.uri) {
       this.inbox.uri = parseLink(parsedProfile, webId,
-        vocab.solid('inbox'))
+        vocab.ldp('inbox'))
     }
 
     // Add storage
